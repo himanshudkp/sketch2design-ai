@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Provider } from "@/types";
-import { PROVIDERS } from "@/config";
-import SocialSignInButton from "./social-signin-button";
+import SocialSignInButton from "./SocialSignInButton";
+import { PROVIDERS } from "@/lib/constants";
 
 const SocialSignInButtons = () => {
   const { handleSignInSocial } = useAuth();
@@ -15,7 +15,7 @@ const SocialSignInButtons = () => {
       try {
         setIsLoading(true);
         console.log(provider);
-        await handleSignInSocial({ provider });
+        await handleSignInSocial(provider);
       } catch (error) {
         console.error("Sign in error:", error);
       } finally {

@@ -1,7 +1,22 @@
-export default function Home() {
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import React from "react";
+
+const Home = () => {
+  const { handleSignOut } = useAuth();
+
   return (
-    <div className="flex items-center justify-center h-screen">
-      <h1>Welcome To AI Sketch To Design Tool</h1>
+    <div>
+      <h1>Home Page</h1>
+      <div>
+        {" "}
+        <p>LogOut</p>
+        <Button onClick={handleSignOut}>LogOut</Button>
+      </div>
     </div>
   );
-}
+};
+
+export default Home;

@@ -1,147 +1,102 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { signIn, signInSocial, signOut, signUp } from "@/actions/auth";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
-const signInSchema = z.object({
-  email: z.email("Invalid email address."),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 character.")
-    .max(20, { message: "Password must be at most 20 characters long" }),
-});
+import type {
+  ForgotPasswordData,
+  ResetPasswordData,
+  SignInData,
+  SignUpData,
+} from "@/types";
 
-const signInSocialSchema = z.object({
-  provider: z.enum(["google", "github"]),
-});
+import {
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  signInSchema,
+  signUpSchema,
+} from "@/lib/schema";
 
-export const signUpSchema = z.object({
-  firstname: z.string().min(2, "Firstname is required"),
-  lastname: z.string().min(2, "Lastname is required"),
-  email: z
-    .string()
-    .email("Invalid email address")
-    .min(1, "Password is required"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(20, "Password must be at most 20 characters long")
-    .regex(/[A-Z]/, "Password must contain an uppercase letter")
-    .regex(/[0-9]/, "Password must contain a number")
-    .regex(/[!@#$%^&*]/, "Password must contain a special character"),
-});
-
-// const forgotPasswordSchema = z.object({
-//   email: z.string().email("Invalid email address"),
-// });
-
-// export const resetPasswordSchema = z
-//   .object({
-//     password: z
-//       .string()
-//       .min(8, "Password must be at least 8 characters")
-//       .max(20, "Password must be at most 20 characters long")
-//       .regex(/[A-Z]/, "Password must contain an uppercase letter")
-//       .regex(/[0-9]/, "Password must contain a number")
-//       .regex(/[!@#$%^&*]/, "Password must contain a special character"),
-//     confirmPassword: z
-//       .string()
-//       .min(8, "Password must be at least 8 characters")
-//       .max(20, "Password must be at most 20 characters long")
-//       .regex(/[A-Z]/, "Password must contain an uppercase letter")
-//       .regex(/[0-9]/, "Password must contain a number")
-//       .regex(/[!@#$%^&*]/, "Password must contain a special character"),
-//   })
-//   .refine((data) => data.password === data.confirmPassword, {
-//     message: "Passwords do not match",
-//     path: ["confirmPassword"],
-//   });
-
-type SignInData = z.infer<typeof signInSchema>;
-type SignUpData = z.infer<typeof signUpSchema>;
-type SignInSocialData = z.infer<typeof signInSocialSchema>;
-// type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
-// type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
+import {
+  signIn,
+  signUp,
+  signInSocial,
+  signOut,
+  sendVerificationEmail as sendVerificationEmailAction,
+  requestPasswordReset as requestPasswordResetAction,
+  resetPassword as resetPasswordAction,
+} from "@/actions/auth";
 
 export const useAuth = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const loading = isLoading || isPending;
 
   const signInForm = useForm<SignInData>({
     resolver: zodResolver(signInSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-    mode: "onChange",
-    reValidateMode: "onChange",
   });
-
-  // const forgetPasswordForm = useForm<ForgotPasswordData>({
-  //   resolver: zodResolver(forgotPasswordSchema),
-  //   defaultValues: {
-  //     email: "",
-  //   },
-  //   mode: "onChange",
-  //   reValidateMode: "onChange",
-  // });
-
-  // const resetPasswordForm = useForm<ResetPasswordData>({
-  //   resolver: zodResolver(resetPasswordSchema),
-  //   defaultValues: {
-  //     password: "",
-  //     confirmPassword: "",
-  //   },
-  //   mode: "onChange",
-  //   reValidateMode: "onChange",
-  // });
 
   const signUpForm = useForm<SignUpData>({
     resolver: zodResolver(signUpSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      firstname: "",
-      lastname: "",
-    },
-    mode: "onChange",
-    reValidateMode: "onChange",
+  });
+
+  const forgotPasswordForm = useForm<ForgotPasswordData>({
+    resolver: zodResolver(forgotPasswordSchema),
+  });
+
+  const resetPasswordForm = useForm<ResetPasswordData>({
+    resolver: zodResolver(resetPasswordSchema),
   });
 
   const handleSignIn = async ({ email, password }: SignInData) => {
     setIsLoading(true);
-    try {
-      await signIn(email, password);
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Error: ", error);
-      signInForm.setError("password", {
-        message: "Invalid email or password.",
-      });
-      toast.error("Invalid email or password.", { position: "top-center" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const loadingToast = toast.loading("Signing in...");
 
-  const handleSignInSocial = async ({ provider }: SignInSocialData) => {
-    setIsLoading(true);
     try {
-      const { url } = await signInSocial(provider);
+      const result = await signIn(email, password);
 
-      if (url) {
-        window.location.href = url;
-      } else {
-        console.log("No redirect URL found.");
+      toast.dismiss(loadingToast);
+
+      if (!result.success) {
+        signInForm.setError("root", { message: result.error });
+
+        if (result.errorCode === "EMAIL_NOT_VERIFIED") {
+          toast.error(result.error, {
+            duration: 6000,
+            action: {
+              label: "Resend Email",
+              onClick: async () => {
+                const resendToast = toast.loading("Sending email...");
+                const resend = await sendVerificationEmailAction(email);
+                toast.dismiss(resendToast);
+
+                resend.success
+                  ? toast.success(resend.message)
+                  : toast.error(resend.error);
+              },
+            },
+          });
+        } else {
+          toast.error(result.error);
+        }
+        return;
       }
-    } catch (error) {
-      console.error("Error caught:", error);
-      toast.error(`Failed to login with ${provider}.`, {
-        position: "top-center",
+
+      toast.success("Welcome back!");
+
+      startTransition(() => {
+        router.push("/dashboard");
       });
+    } catch (error: any) {
+      toast.dismiss(loadingToast);
+      const message = error?.message ?? "Unexpected error";
+      signInForm.setError("root", { message });
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -154,42 +109,150 @@ export const useAuth = () => {
     lastname,
   }: SignUpData) => {
     setIsLoading(true);
+
     try {
-      const name = `${firstname} ${lastname}`.trim();
-      await signUp(email, password, name);
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Error: ", error);
-      signUpForm.setError("root", {
-        message: "Failed to create account. Email already exist",
+      const result = await signUp(email, password, firstname, lastname);
+
+      if (!result.success) {
+        signUpForm.setError("root", { message: result.error });
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success(result.message, { duration: 5000 });
+
+      startTransition(() => {
+        router.push(
+          `/email-sent?email=${encodeURIComponent(email)}&type=verification`
+        );
       });
-      toast.error("Failed to create account. Email already exist", {
-        position: "top-center",
-      });
+    } catch (error: any) {
+      const message = error?.message ?? "Unexpected error";
+      signUpForm.setError("root", { message });
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignInSocial = async (provider: "google" | "github") => {
+    setIsLoading(true);
+    const loadingToast = toast.loading(
+      `Connecting to ${provider === "google" ? "Google" : "GitHub"}...`
+    );
+
+    try {
+      const result = await signInSocial(provider);
+
+      toast.dismiss(loadingToast);
+
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result.data?.url) {
+        toast.success("Redirecting...");
+        window.location.href = result.data.url;
+      }
+    } catch (error: any) {
+      toast.dismiss(loadingToast);
+      toast.error(error?.message ?? "Social login failed.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSignOut = async () => {
+    const loadingToast = toast.loading("Signing out...");
+
     try {
       await signOut();
-      router.push("/sign-in");
-    } catch (error) {
-      console.error("Error: ", error);
-      toast.error("Failed to sign out.");
+      toast.dismiss(loadingToast);
+      toast.success("Signed out");
+    } catch {
+      toast.dismiss(loadingToast);
+      toast.error("Failed to sign out");
+    }
+  };
+
+  const handleForgotPassword = async ({ email }: ForgotPasswordData) => {
+    setIsLoading(true);
+    const loadingToast = toast.loading("Sending reset link...");
+
+    try {
+      const result = await requestPasswordResetAction(email);
+
+      toast.dismiss(loadingToast);
+
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success(result.message);
+      localStorage.setItem("resetPasswordEmail", email);
+
+      startTransition(() => {
+        router.push(
+          `/email-sent?email=${encodeURIComponent(email)}&type=password-reset`
+        );
+      });
+    } catch {
+      toast.dismiss(loadingToast);
+      toast.error("Unexpected error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (
+    { password }: ResetPasswordData,
+    token: string
+  ) => {
+    setIsLoading(true);
+    const loadingToast = toast.loading("Resetting password...");
+
+    try {
+      const result = await resetPasswordAction(password, token);
+
+      toast.dismiss(loadingToast);
+
+      if (!result.success) {
+        resetPasswordForm.setError("root", { message: result.error });
+        toast.error(result.error);
+        return;
+      }
+
+      toast.success(result.message);
+      localStorage.removeItem("resetPasswordEmail");
+
+      startTransition(() => {
+        router.push("/sign-in");
+      });
+    } catch (error: any) {
+      toast.dismiss(loadingToast);
+      const message = error?.message ?? "Unexpected error";
+      resetPasswordForm.setError("root", { message });
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return {
-    handleSignIn,
-    handleSignOut,
-    handleSignUp,
-    isLoading,
     signInForm,
     signUpForm,
+    forgotPasswordForm,
+    resetPasswordForm,
+
+    handleSignIn,
+    handleSignUp,
     handleSignInSocial,
-    // forgetPasswordForm,
-    // resetPasswordForm,
+    handleSignOut,
+    handleForgotPassword,
+    handleResetPassword,
+
+    isLoading: loading,
   };
 };

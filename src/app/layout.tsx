@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Linea",
-  description: "Linea is an AI-powered sketch-to-design tool.",
+  title: "Sketch2Design",
+  description: "Sketch2Design is an AI-powered sketch-to-design tool.",
 };
 
 export default function RootLayout({

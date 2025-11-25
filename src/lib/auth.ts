@@ -1,50 +1,107 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { prisma } from "./prisma";
 import { nextCookies } from "better-auth/next-js";
-import { sendResetPasswordEmail } from "./utils";
+import {
+  sendPasswordResetEmail,
+  sendPasswordResetSuccessEmail,
+  sendVerificationEmail,
+} from "./email";
+import { prisma } from "./prisma";
+import {
+  AUTH_ERROR_MESSAGES,
+  BASE_URL,
+  BETTER_AUTH_COOKIE_PREFIX,
+  BETTER_AUTH_DB_PROVIDER,
+} from "./constants";
+import { SESSION_CONFIG } from "./config";
+import { validateCredentialAccount } from "@/actions/user";
+import type { BetterAuthCallback } from "@/types";
+
+async function handlePasswordReset({
+  user,
+  url,
+}: BetterAuthCallback): Promise<void> {
+  try {
+    await validateCredentialAccount(user.id);
+
+    await sendPasswordResetEmail({
+      email: user.email,
+      url,
+      name: user.name,
+    });
+  } catch (error) {
+    console.error(
+      `${AUTH_ERROR_MESSAGES.PASSWORD_RESET_ERROR_MESSAGE}: `,
+      error
+    );
+
+    throw error;
+  }
+}
+
+async function handlePasswordResetSuccess({ user }: BetterAuthCallback) {
+  try {
+    await sendPasswordResetSuccessEmail({
+      email: user.email,
+      name: user.name,
+    });
+  } catch (error) {
+    console.error(`${AUTH_ERROR_MESSAGES.PASSWORD_RESET_SUCCESS}: `, error);
+    throw error;
+  }
+}
+
+async function handleVerificationEmail({ user, url }: BetterAuthCallback) {
+  try {
+    await sendVerificationEmail({
+      email: user.email,
+      url,
+      name: user.name,
+    });
+  } catch (error) {
+    console.error(`${AUTH_ERROR_MESSAGES.EMAIL_VERIFICATION}: `, error);
+    throw error;
+  }
+}
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "postgresql",
+    provider: BETTER_AUTH_DB_PROVIDER,
   }),
+
+  baseURL: BASE_URL,
+
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
     minPasswordLength: 8,
     maxPasswordLength: 20,
-    // sendResetPassword: async ({ user, url, token }, request) => {
-    //   try {
-    //     const { email, name } = user;
-
-    //     const res = await sendResetPasswordEmail({
-    //       name,
-    //       email,
-    //     });
-
-    //     if (!res.error) {
-    //       console.log(`Successfully sent reset link to ${email}`);
-    //     } else {
-    //       console.log(`Failed to send reset link to ${email}`, res.error);
-    //     }
-    //   } catch (error) {
-    //     console.log(`Failed to send reset link to ${user.email}`, error);
-    //   }
-    // },
-
-    // onPasswordReset: async ({ user }) => {
-    //   console.log(`Password for user ${user.email} has been reset.`);
-    // },
+    sendResetPassword: handlePasswordReset,
+    onPasswordReset: handlePasswordResetSuccess,
   },
+
+  emailVerification: {
+    sendVerificationEmail: handleVerificationEmail,
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+  },
+
   socialProviders: {
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
-    },
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
     },
   },
+
   plugins: [nextCookies()],
+
+  session: SESSION_CONFIG,
+
+  advanced: {
+    cookiePrefix: BETTER_AUTH_COOKIE_PREFIX,
+  },
 });

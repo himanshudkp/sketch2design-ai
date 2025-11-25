@@ -1,27 +1,19 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-export function cn(...inputs: ClassValue[]) {
+export const cn = (...inputs: ClassValue[]) => {
   return twMerge(clsx(inputs));
-}
+};
 
-export async function sendResetPasswordEmail({
-  name,
-  email,
-}: {
-  name: string;
-  email: string;
-}) {
-  const response = await fetch("/api/reset-password-email", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name,
-      email,
-    }),
-  });
+export const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 
-  return response.json();
-}
+export const isValidPassword = (password: string): boolean => {
+  return password.length >= 8 && password.length <= 20;
+};
+
+export const isValidName = (name: string): boolean => {
+  return name.trim().length > 0 && name.trim().length <= 100;
+};

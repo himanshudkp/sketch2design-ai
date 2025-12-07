@@ -41,3 +41,5 @@ prisma/migrations
 /generated/prisma
 generated/prisma
 generated
+
+CMD.md

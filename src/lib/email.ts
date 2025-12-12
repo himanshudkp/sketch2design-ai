@@ -1,4 +1,4 @@
-import type { EmailParams, SendEmail } from "@/types";
+import type { EmailParams, SendEmail } from "@/lib/types";
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { EmailConfigurationError, EmailSendError } from "./error";

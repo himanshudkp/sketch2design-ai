@@ -12,7 +12,7 @@ import { AuthHeader } from "@/components/auth/AuthHeader";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { PasswordStrengthIndicator } from "@/components/auth/PasswordStrengthIndicator";
 import { ErrorAlert } from "@/components/auth/ErrorAlert";
-import { ResetPasswordData } from "@/types";
+import { ResetPasswordData } from "@/lib/types";
 
 type TokenStatus = "checking" | "valid" | "invalid";
 

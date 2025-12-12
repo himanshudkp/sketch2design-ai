@@ -1,4 +1,4 @@
-import type { Provider, ProviderConfig } from "@/types";
+import type { Provider, ProviderConfig } from "@/lib/types";
 
 export const SESSION_CONFIG = {
   expiresIn: 60 * 60 * 24 * 7,

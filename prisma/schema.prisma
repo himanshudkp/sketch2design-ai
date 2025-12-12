@@ -70,7 +70,7 @@ model Verification {
 }
 
 model CreditsLedger {
-  id             String  @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   subscriptionId String
   amount         Float
@@ -78,6 +78,8 @@ model CreditsLedger {
   reason         String?
   idempotencyKey String?
   meta           Json?
+  createdAt      DateTime
+  updatedAt      DateTime
 
   user         User         @relation(fields: [userId], references: [id])
   subscription Subscription @relation(fields: [subscriptionId], references: [id])
@@ -85,10 +87,11 @@ model CreditsLedger {
   @@index([subscriptionId], map: "idx_creditsLedger_subscriptionId")
   @@index([userId], map: "idx_creditsLedger_userId")
   @@index([idempotencyKey], map: "idx_creditsLedger_idempotencyKey")
+  @@map("credits_ledger")
 }
 
 model Subscription {
-  id                    String  @id @default(cuid())
+  id                    String   @id @default(cuid())
   userId                String
   polarCustomerId       String
   polarSubscriptionId   String
@@ -106,6 +109,8 @@ model Subscription {
   creditsGrantPerPeriod Int
   creditsRolloverLimit  Int
   lastGrantCursor       String?
+  createdAt             DateTime
+  updatedAt             DateTime
 
   user   User            @relation(fields: [userId], references: [id])
   ledger CreditsLedger[]
@@ -113,9 +118,10 @@ model Subscription {
   @@index([userId], map: "idx_subscription_userId")
   @@index([polarSubscriptionId], map: "idx_subscription_polarSubscriptionId")
   @@index([status], map: "idx_subscription_status")
+  @@map("subscription")
 }
 
-model projects {
+model Projects {
   id                  String   @id @default(cuid())
   userId              String
   title               String
@@ -131,16 +137,20 @@ model projects {
   isPublic            Boolean?
   tags                String[] @default([])
   projectNumber       Int
-  createdAt           Int
-  updatedAt           Int
+  createdAt           DateTime
+  updatedAt           DateTime
 
   @@index([userId], map: "idx_projects_userId")
+  @@map("projects")
 }
 
-model project_counters {
-  id                String @id @default(cuid())
+model ProjectCounters {
+  id                String   @id @default(cuid())
   userId            String
   nextProjectNumber Int
+  createdAt         DateTime
+  updatedAt         DateTime
 
   @@index([userId], name: "by_projects_counters_userId")
+  @@map("project_counters")
 }

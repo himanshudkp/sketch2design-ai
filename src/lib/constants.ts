@@ -1,4 +1,4 @@
-import { Provider } from "@/types";
+import { Provider } from "@/lib/types";
 
 export const AUTH_ERROR_MESSAGES = {
   OAUTH_ACCOUNT:
@@ -115,3 +115,27 @@ export const VALIDATION_MESSAGES = {
 };
 
 export const PROVIDERS: Provider[] = ["google", "github"];
+
+export const ERRORS = {
+  NOT_AUTHENTICATED: { status: 401, error: "User is not authenticated." },
+  USER_NOT_FOUND: {
+    status: 404,
+    error: "User does not exist in the database.",
+  },
+  SERVER_ERROR: {
+    status: 500,
+    error: "Internal server error while retrieving subscription.",
+  },
+  PROJECT_NOT_FOUND: {
+    status: 404,
+    error: "Project not found",
+  },
+  ACCESS_DENIED: {
+    status: 403,
+    error: "Access denied",
+  },
+  PROJECT_ID_NOT_FOUND: {
+    status: 404,
+    error: "Project not found.",
+  },
+} as const;

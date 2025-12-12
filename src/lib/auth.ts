@@ -14,15 +14,14 @@ import {
   BETTER_AUTH_DB_PROVIDER,
 } from "./constants";
 import { SESSION_CONFIG } from "./config";
-import { validateCredentialAccount } from "@/actions/user";
-import type { BetterAuthCallback } from "@/types";
+import type { BetterAuthCallback } from "@/lib/types";
 
 async function handlePasswordReset({
   user,
   url,
 }: BetterAuthCallback): Promise<void> {
   try {
-    await validateCredentialAccount(user.id);
+    await validateAccountCredential(user.id);
 
     await sendPasswordResetEmail({
       email: user.email,
@@ -105,3 +104,18 @@ export const auth = betterAuth({
     cookiePrefix: BETTER_AUTH_COOKIE_PREFIX,
   },
 });
+
+export const validateAccountCredential = async (userId: string) => {
+  const account = await prisma.account.findFirst({
+    where: { userId, providerId: "credential" },
+    select: { providerId: true },
+  });
+
+  if (!account) {
+    throw new Error(AUTH_ERROR_MESSAGES.ACCOUNT_NOT_EXIST);
+  }
+
+  if (account.providerId !== "credential") {
+    throw new Error(AUTH_ERROR_MESSAGES.PASSWORD_RESET_ERROR_MESSAGE);
+  }
+};

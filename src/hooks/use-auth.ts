@@ -11,7 +11,7 @@ import type {
   ResetPasswordData,
   SignInData,
   SignUpData,
-} from "@/types";
+} from "@/lib/types";
 
 import {
   forgotPasswordSchema,

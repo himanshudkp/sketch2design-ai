@@ -10,7 +10,7 @@ import {
   handleAuthApiError,
   hasError,
 } from "@/lib/error";
-import type { ActionResponse, SocialProvider } from "@/types";
+import type { ActionResponse, SocialProvider } from "@/lib/types";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 

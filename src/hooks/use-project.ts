@@ -25,7 +25,7 @@ export const useProject = () => {
   };
   return {
     canCreate: !!user?.id,
-    isCreating: projects.isCreating,
+    isCreating: projects.isCreating!,
     totalProjects: projects.total,
     projects: projects.projects,
     createProject: createProject,

@@ -3,7 +3,7 @@
 import type { Projects } from "../../generated/prisma/client";
 import { authenticateUser } from "./user";
 import { prisma } from "@/lib/prisma";
-import { ERRORS } from "@/lib/contants";
+import { ERRORS } from "@/lib/constants";
 import { successResponse } from "@/lib/utils";
 import type { Response } from "@/lib/types";
 

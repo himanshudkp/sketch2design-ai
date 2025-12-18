@@ -1,6 +1,5 @@
 "use server";
 
-import { auth } from "@/lib/utils/index";
 import { prisma } from "@/lib/prisma";
 import {
   combinedSlug,
@@ -10,8 +9,9 @@ import {
 } from "@/lib/utils";
 import type { Entitlement, Response } from "@/lib/types";
 import { headers } from "next/headers";
-import { ERRORS } from "@/lib/contants";
+import { AUTH_ERROR_MESSAGES, ERRORS } from "@/lib/constants";
 import { User } from "../../generated/prisma/client";
+import { auth } from "@/lib/auth";
 
 export const authenticateUser = async (): Promise<
   Response<{ userId: string }>
@@ -92,5 +92,20 @@ export const getUserProfile = async (): Promise<Response<User>> => {
   } catch (err) {
     console.error("[getUserProfile] Error:", err);
     return ERRORS.SERVER_ERROR;
+  }
+};
+
+export const validateAccountCredential = async (userId: string) => {
+  const account = await prisma.account.findFirst({
+    where: { userId, providerId: "credential" },
+    select: { providerId: true },
+  });
+
+  if (!account) {
+    throw new Error(AUTH_ERROR_MESSAGES.ACCOUNT_NOT_EXIST);
+  }
+
+  if (account.providerId !== "credential") {
+    throw new Error(AUTH_ERROR_MESSAGES.PASSWORD_RESET_ERROR_MESSAGE);
   }
 };
